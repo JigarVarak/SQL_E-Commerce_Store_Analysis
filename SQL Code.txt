@@ -1,0 +1,141 @@
+
+
+/* Q1: find the total sales amount for each product. Order the result to show the top 5 products. */
+
+SELECT product_name,((p.price)*(o.quantity)) as sale_amount
+
+ FROM products p 
+
+ JOIN orderitems o 
+
+ ON p.product_id = o.product_id 
+
+ ORDER BY ((p.price)*(o.quantity)) DESC
+
+ LIMIT 5;
+
+
+/* Q2: calculate the average order value for each customer. */
+ 
+SELECT
+row_number() over()as Row_num, C.customer_name,
+ROUND(AVG(P.price*od.quantity),2) as Avg_sale
+FROM customers c 
+JOIN orders o
+ON c.customer_id=o.customer_id 
+JOIN orderitems od
+ON o.order_id=od.order_id
+JOIN products p
+ON p.product_id=od.product_id
+GROUP BY customer_name
+ORDER BY avg(P.price*od.quantity) DESC;
+
+
+/* Q3: Identify customers who have not placed any orders in the after ‘2023-01-05’. */
+
+SELECT
+ C.customer_id,
+ C.customer_name
+FROM customers c 
+LEFT JOIN orders o 
+ON C.customer_id=O.customer_id 
+WHERE o.order_date IS NULL OR o.order_date >'2023-01-05'
+
+
+/* Q4: Total revenue for each product category.*/
+
+SELECT 
+C.category_name,
+SUM(O.quantity * P.price) AS revenue 
+FROM categories C 
+LEFT JOIN products P 
+ON C.category_id = P.category_id 
+LEFT JOIN orderitems O  
+ON P.product_id = O.product_id 
+GROUP BY C.category_name 
+ORDER BY revenue DESC;
+
+/* Q5: Find employees who have processed the highest number of orders.*/
+
+SELECT
+C.customer_name,
+SUM(O.quantity) AS total_quantity
+FROM customers C
+JOIN  orders ord
+ON C.customer_id=ord.customer_id
+JOIN orderitems o
+ON ord.order_id=O.order_id
+GROUP BY c.customer_name
+ORDER BY total_quantity DESC 
+LIMIT 1;
+
+
+/* Q6: Retrieve the latest order details for each. */
+
+WITH RankedOrders AS (
+SELECT Customer_ID,  Order_ID,  Order_Date,
+ROW_NUMBER() OVER (PARTITION BY Customer_ID ORDER BY Order_Date DESC) AS RowNum    FROM Orders
+ )
+SELECT R.Order_ID,	C.customer_name,products.product_name,orderitems.quantity, R.Order_Date   FROM  RankedOrders R 
+JOIN customers c  ON R.customer_id=C.customer_id 
+JOIN orders ON orders.customer_id=C.customer_id
+JOIN orderitems ON orders.order_id=orderitems.order_id 
+JOIN products ON orderitems.product_id=products.product_id
+WHERE RowNum = 1;
+
+
+/* Q7: Write a query to find the top 3 customers who spent the most in each product category during the between '2023-01-01’ to '2023-01-20’Include the customer's name, email, and the total amount spent. */
+
+WITH RankedCustomers AS( 
+SELECT c.Customer_ID, c.Customer_Name,c.Email,p.product_name,
+SUM(oi.Quantity * P.Price) AS TotalSpent,
+RANK() OVER (PARTITION BY p.product_name ORDER BY SUM(oi.Quantity * P.Price) DESC) AS RankWithinCategory    FROM Customers c 
+JOIN Orders o ON c.Customer_ID = o.Customer_ID
+JOIN OrderItems oi ON o.Order_ID = oi.Order_ID
+JOIN products P ON oi.product_id = p.product_id
+WHERE o.Order_Date  BETWEEN '2023-01-01' AND '2023-01-20’
+GROUP BY c.Customer_ID,c.Customer_Name,c.Email,p.product_name
+)
+SELECT Customer_ID,Customer_Name,Email,product_name,TotalSpent
+FROM RankedCustomers 
+WHERE RankWithinCategory <= 3
+ORDER BY product_name, RankWithinCategory;
+
+
+/* Q8: Retrieve the names of customers who have placed an order in the last 15 days. Display only unique customer names. */
+
+SELECT DISTINCT Customer_Name
+FROM Customers
+WHERE Customer_ID IN 
+(SELECT DISTINCT Customer_ID
+FROM Orders
+WHERE Order_Date BETWEEN '2023-01-01' AND '2023-01-20');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
